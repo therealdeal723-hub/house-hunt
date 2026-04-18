@@ -1,1 +1,16 @@
-{"timestamp": null, "verdictsSince": null, "subscriptionsSince": null}
+{
+  "timestamp": "2026-04-18T21:02:35.684Z",
+  "runDate": "2026-04-18",
+  "summary": {
+    "runDate": "2026-04-18",
+    "counts": {
+      "fetched": 0,
+      "deduped": 0,
+      "passed": 0,
+      "rejected": 0,
+      "flagged": 0,
+      "new": 0,
+      "watchedUpdates": 0
+    }
+  }
+}
