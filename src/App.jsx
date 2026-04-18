@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { loadAllData } from './data-loader.js';
 import { getPat, setPat, postVerdict } from './github-client.js';
+import { enablePushNotifications } from './pwa/register.js';
 import ListingCard from './components/ListingCard.jsx';
 import InstallPrompt from './components/InstallPrompt.jsx';
 
@@ -14,6 +15,21 @@ export default function App() {
   const [pat, setPatState] = useState(() => getPat());
   const [lastVisit, setLastVisit] = useState(() => localStorage.getItem(LAST_VISIT_KEY));
   const [verdictsLocal, setVerdictsLocal] = useState({});
+  const [pushState, setPushState] = useState(() =>
+    typeof Notification !== 'undefined' ? Notification.permission : 'unsupported'
+  );
+  const [pushMsg, setPushMsg] = useState(null);
+
+  const handleEnablePush = async () => {
+    setPushMsg(null);
+    try {
+      await enablePushNotifications();
+      setPushState('granted');
+      setPushMsg({ kind: 'ok', text: 'Notifications enabled.' });
+    } catch (err) {
+      setPushMsg({ kind: 'error', text: err.message });
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -129,6 +145,19 @@ export default function App() {
         )}
       </main>
       <footer className="app-footer">
+        {pushState !== 'granted' && pushState !== 'unsupported' && (
+          <button className="primary" onClick={handleEnablePush} style={{ maxWidth: '320px', margin: '0 auto 1rem' }}>
+            Enable notifications
+          </button>
+        )}
+        {pushState === 'granted' && (
+          <p style={{ color: 'var(--muted)', fontSize: '0.85rem' }}>Notifications enabled ✓</p>
+        )}
+        {pushMsg && (
+          <p className={pushMsg.kind === 'error' ? 'error' : ''} style={{ fontSize: '0.85rem' }}>
+            {pushMsg.text}
+          </p>
+        )}
         <button className="link" onClick={() => { setPat(''); setPatState(''); }}>
           Reset PAT
         </button>
