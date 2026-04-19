@@ -13,10 +13,16 @@ async function getRegionIdForZip(zip) {
   const res = await fetchWithRetry(url, {
     headers: { 'Accept': 'application/json' }
   });
-  if (!res.ok) return null;
+  if (!res.ok) {
+    console.error(`[redfin] autocomplete zip=${zip} status=${res.status}`);
+    return null;
+  }
   const text = await res.text();
   let json;
-  try { json = JSON.parse(stripPrefix(text)); } catch { return null; }
+  try { json = JSON.parse(stripPrefix(text)); } catch {
+    console.error(`[redfin] autocomplete zip=${zip} parse-fail bytes=${text.length} head=${text.slice(0, 80).replace(/\s+/g, ' ')}`);
+    return null;
+  }
   const sections = json?.payload?.sections || [];
   for (const sec of sections) {
     for (const row of sec.rows || []) {
@@ -26,6 +32,7 @@ async function getRegionIdForZip(zip) {
       }
     }
   }
+  console.error(`[redfin] autocomplete zip=${zip} no-region-id`);
   return null;
 }
 
@@ -50,11 +57,19 @@ async function fetchRegion(regionId, filters) {
   });
   const url = `${BASE}/stingray/api/gis?${params.toString()}`;
   const res = await fetchWithRetry(url, { headers: { 'Accept': 'application/json' } });
-  if (!res.ok) return [];
+  if (!res.ok) {
+    console.error(`[redfin] gis region=${regionId} status=${res.status}`);
+    return [];
+  }
   const text = await res.text();
   let json;
-  try { json = JSON.parse(stripPrefix(text)); } catch { return []; }
-  return json?.payload?.homes || [];
+  try { json = JSON.parse(stripPrefix(text)); } catch {
+    console.error(`[redfin] gis region=${regionId} parse-fail bytes=${text.length}`);
+    return [];
+  }
+  const homes = json?.payload?.homes || [];
+  console.error(`[redfin] gis region=${regionId} homes=${homes.length}`);
+  return homes;
 }
 
 function mapHome(h) {

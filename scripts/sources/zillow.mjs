@@ -94,15 +94,21 @@ export async function fetch_zillow(filters, { zips = [] } = {}) {
       const res = await fetchWithRetry(url, {
         headers: { 'Referer': BASE + '/' }
       }, { retries: 2 });
-      if (!res.ok) { await sleep(500); continue; }
+      if (!res.ok) {
+        console.error(`[zillow] zip=${zip} status=${res.status}`);
+        await sleep(500); continue;
+      }
       const html = await res.text();
       if (isCaptcha(html)) {
-        console.warn(`[zillow] captcha wall for zip ${zip}; skipping`);
+        console.error(`[zillow] zip=${zip} captcha-wall bytes=${html.length}`);
         await sleep(1000);
         continue;
       }
       const nd = extractNextData(html);
-      if (!nd) continue;
+      if (!nd) {
+        console.error(`[zillow] zip=${zip} no-next-data bytes=${html.length} head=${html.slice(0, 120).replace(/\s+/g, ' ')}`);
+        continue;
+      }
       const results = findListResults(nd);
       const seen = new Set();
       for (const r of results) {
@@ -111,6 +117,7 @@ export async function fetch_zillow(filters, { zips = [] } = {}) {
         seen.add(l.addressKey);
         out.push(l);
       }
+      console.error(`[zillow] zip=${zip} results=${results.length} kept=${seen.size}`);
       await sleep(800 + Math.random() * 600);
     } catch (err) {
       console.error(`[zillow] zip ${zip} failed:`, err.message);

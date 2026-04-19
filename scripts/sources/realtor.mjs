@@ -70,10 +70,16 @@ export async function fetch_realtor(filters, { zips = [] } = {}) {
     try {
       const url = buildUrl(zip, filters);
       const res = await fetchWithRetry(url);
-      if (!res.ok) { await sleep(300); continue; }
+      if (!res.ok) {
+        console.error(`[realtor] zip=${zip} status=${res.status}`);
+        await sleep(300); continue;
+      }
       const html = await res.text();
       const nd = extractNextData(html);
-      if (!nd) continue;
+      if (!nd) {
+        console.error(`[realtor] zip=${zip} no-next-data bytes=${html.length} head=${html.slice(0, 120).replace(/\s+/g, ' ')}`);
+        continue;
+      }
       const results = findResults(nd);
       const seen = new Set();
       for (const r of results) {
@@ -82,6 +88,7 @@ export async function fetch_realtor(filters, { zips = [] } = {}) {
         seen.add(l.addressKey);
         out.push(l);
       }
+      console.error(`[realtor] zip=${zip} results=${results.length} kept=${seen.size}`);
       await sleep(400 + Math.random() * 400);
     } catch (err) {
       console.error(`[realtor] zip ${zip} failed:`, err.message);

@@ -76,10 +76,16 @@ export async function fetch_homes(filters, { zips = [] } = {}) {
   for (const zip of zips) {
     try {
       const res = await fetchWithRetry(buildUrl(zip, filters));
-      if (!res.ok) { await sleep(300); continue; }
+      if (!res.ok) {
+        console.error(`[homes] zip=${zip} status=${res.status}`);
+        await sleep(300); continue;
+      }
       const html = await res.text();
       const state = extractInitialState(html);
-      if (!state) continue;
+      if (!state) {
+        console.error(`[homes] zip=${zip} no-initial-state bytes=${html.length} head=${html.slice(0, 120).replace(/\s+/g, ' ')}`);
+        continue;
+      }
       const items = findListings(state);
       const seen = new Set();
       for (const item of items) {
@@ -88,6 +94,7 @@ export async function fetch_homes(filters, { zips = [] } = {}) {
         seen.add(l.addressKey);
         out.push(l);
       }
+      console.error(`[homes] zip=${zip} items=${items.length} kept=${seen.size}`);
       await sleep(400 + Math.random() * 400);
     } catch (err) {
       console.error(`[homes] zip ${zip} failed:`, err.message);
